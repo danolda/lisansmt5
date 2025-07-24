@@ -3,6 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebas
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
+// Firebase yapılandırma bilgileriniz...
 const firebaseConfig = {
   apiKey: "AIzaSyDLibwYuw_2qWo18K3eilJjbE54r7wncUI",
   authDomain: "goldealisans.firebaseapp.com",
@@ -13,50 +14,50 @@ const firebaseConfig = {
   measurementId: "G-7C16XNKFL9"
 };
 
+// --- Firebase'i Başlatma ---
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// GİRİŞ SAYFASI İÇİN KOD
-if (window.location.pathname.includes('login.html') || window.location.pathname.endsWith('/goldealisans/')) {
-    
-    const btnLogin = document.getElementById('btnLogin');
-    
-    if (btnLogin) {
-        btnLogin.addEventListener('click', () => {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+// --- SAYFA ELEMANLARINA GÖRE MANTIK YÜRÜTME ---
 
-            setPersistence(auth, browserLocalPersistence)
-                .then(() => signInWithEmailAndPassword(auth, email, password))
-                .then(() => { window.location.href = 'dashboard.html'; })
-                .catch((error) => {
-                    const errorMessage = document.getElementById('error-message');
-                    if(errorMessage) errorMessage.innerText = 'Hata: E-posta veya şifre yanlış.';
-                });
-        });
-    }
-
-// DASHBOARD SAYFASI İÇİN KOD
-} else if (window.location.pathname.includes('dashboard.html')) {
-
-    const btnLogout = document.getElementById('btnLogout');
+// Giriş Butonunu (btnLogin) ara. Eğer varsa, burası giriş sayfasıdır.
+const btnLogin = document.getElementById('btnLogin');
+if (btnLogin) {
+    console.log("Giriş sayfası algılandı (btnLogin bulundu).");
     
-    // Çıkış Yap Butonu
-    if(btnLogout) {
-        btnLogout.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                // DÜZELTME: Tarayıcıyı sitenin kök dizinine yönlendiriyoruz.
-                window.location.href = '/goldealisans/';
+    btnLogin.addEventListener('click', () => {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        setPersistence(auth, browserLocalPersistence)
+            .then(() => signInWithEmailAndPassword(auth, email, password))
+            .then(() => { window.location.href = 'dashboard.html'; })
+            .catch((error) => {
+                const errorMessage = document.getElementById('error-message');
+                if(errorMessage) errorMessage.innerText = 'Hata: E-posta veya şifre yanlış.';
+                console.error("Giriş Hatası:", error);
             });
+    });
+}
+
+// Çıkış Butonunu (btnLogout) ara. Eğer varsa, burası dashboard sayfasıdır.
+const btnLogout = document.getElementById('btnLogout');
+if (btnLogout) {
+    console.log("Dashboard sayfası algılandı (btnLogout bulundu).");
+    
+    // Çıkış Yap Butonu Olayı
+    btnLogout.addEventListener('click', () => {
+        signOut(auth).then(() => {
+            // Tarayıcıyı sitenin kök dizinine yönlendir (GitHub Pages için doğru yol)
+            window.location.href = '/goldealisans/';
         });
-    }
+    });
     
     // Kullanıcı Oturum Durumunu Dinle
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             document.getElementById('userEmail').innerText = user.email;
-
             const docRef = doc(db, "licenses", user.uid);
             const docSnap = await getDoc(docRef);
 
@@ -71,6 +72,9 @@ if (window.location.pathname.includes('login.html') || window.location.pathname.
             } else {
                 document.getElementById('licenseKey').innerText = "Bu hesaba atanmış lisans yok.";
             }
+        } else {
+            // Eğer oturum açılmamışsa, güvenlik için giriş sayfasına yönlendir.
+            window.location.href = '/goldealisans/';
         }
     });
 }
