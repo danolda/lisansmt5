@@ -24,8 +24,6 @@ const db = getFirestore(app);
 // Giriş Butonunu (btnLogin) ara. Eğer varsa, burası giriş sayfasıdır.
 const btnLogin = document.getElementById('btnLogin');
 if (btnLogin) {
-    console.log("Giriş sayfası algılandı (btnLogin bulundu).");
-    
     btnLogin.addEventListener('click', () => {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
@@ -36,7 +34,6 @@ if (btnLogin) {
             .catch((error) => {
                 const errorMessage = document.getElementById('error-message');
                 if(errorMessage) errorMessage.innerText = 'Hata: E-posta veya şifre yanlış.';
-                console.error("Giriş Hatası:", error);
             });
     });
 }
@@ -44,13 +41,12 @@ if (btnLogin) {
 // Çıkış Butonunu (btnLogout) ara. Eğer varsa, burası dashboard sayfasıdır.
 const btnLogout = document.getElementById('btnLogout');
 if (btnLogout) {
-    console.log("Dashboard sayfası algılandı (btnLogout bulundu).");
     
     // Çıkış Yap Butonu Olayı
     btnLogout.addEventListener('click', () => {
         signOut(auth).then(() => {
-            // Tarayıcıyı sitenin kök dizinine yönlendir (GitHub Pages için doğru yol)
-            window.location.href = '/goldealisans/';
+            // DÜZELTME: Tarayıcıyı doğrudan index.html'e yönlendir.
+            window.location.href = 'index.html';
         });
     });
     
@@ -74,7 +70,7 @@ if (btnLogout) {
             }
         } else {
             // Eğer oturum açılmamışsa, güvenlik için giriş sayfasına yönlendir.
-            window.location.href = '/goldealisans/';
+            window.location.href = 'index.html';
         }
     });
 }
