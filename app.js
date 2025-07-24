@@ -1,8 +1,11 @@
 // Firebase v9+ modüler SDK'dan gerekli fonksiyonları içe aktar
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-// YENİ: Oturum kalıcılığı için fonksiyonlar eklendi
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+// --- MASTER DEBUG 1 ---
+// Bu mesaj görünüyorsa, tarayıcı bu script dosyasını okumaya başladı demektir.
+console.log("--- app.js script dosyası başarıyla OKUNDU ---");
 
 // Firebase yapılandırma bilgileriniz...
 const firebaseConfig = {
@@ -15,86 +18,64 @@ const firebaseConfig = {
   measurementId: "G-7C16XNKFL9"
 };
 
-// Firebase servislerini başlat
+// --- MASTER DEBUG 2 ---
+// Bu mesaj görünüyorsa, script dosyası çalışmaya devam ediyor ve Firebase'i başlatacak.
+console.log("--- Firebase'i başlatma adımına gelindi ---");
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+console.log("--- Firebase başarıyla başlatıldı ---");
 
-//--- Sayfa yoluna göre ilgili kodu çalıştır ---
+// --- MASTER DEBUG 3 ---
+// Bu mesaj, hangi sayfada olduğumuzu kontrol etmeden hemen önce yazılacak.
+// Ayrıca tarayıcının gördüğü sayfa yolunu (pathname) da yazdıracağız. Bu çok önemli!
+console.log("--- Sayfa yolunu kontrol etme adımına gelindi. Tarayıcının gördüğü yol:", window.location.pathname, "---");
+
+
 if (window.location.pathname.includes('login.html') || window.location.pathname.endsWith('/') || window.location.pathname.endsWith('/mt5-lisans-sitesi/')) {
     
-    // --- GİRİŞ SAYFASI KODU ---
+    // --- LOGIN PAGE DEBUG ---
+    console.log(">>> LOGIN SAYFASI mantığına girildi.");
     const btnLogin = document.getElementById('btnLogin');
-    const emailField = document.getElementById('email');
-    const passwordField = document.getElementById('password');
-    const errorMessage = document.getElementById('error-message');
-
     btnLogin.addEventListener('click', () => {
-        const email = emailField.value;
-        const password = passwordField.value;
-
-        // YENİ: Giriş yapmadan ÖNCE oturumun kalıcı olacağını belirtiyoruz.
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
         setPersistence(auth, browserLocalPersistence)
-            .then(() => {
-                // Oturum kalıcılığı ayarlandıktan sonra giriş yap.
-                return signInWithEmailAndPassword(auth, email, password);
-            })
-            .then((userCredential) => {
-                window.location.href = 'dashboard.html';
-            })
-            .catch((error) => {
-                errorMessage.innerText = 'Hata: ' + error.message;
-                console.error("Giriş veya Kalıcılık Hatası:", error);
-            });
+            .then(() => signInWithEmailAndPassword(auth, email, password))
+            .then(() => { window.location.href = 'dashboard.html'; })
+            .catch((error) => { console.error("Login hatası:", error); });
     });
 
 } else if (window.location.pathname.includes('dashboard.html')) {
 
-    // --- KULLANICI PANELİ (DASHBOARD) KODU ---
-    // Bu kısımda bir değişiklik yok, önceki debug kodları hala yerinde duruyor.
-    const userEmailSpan = document.getElementById('userEmail');
-    const licenseKeySpan = document.getElementById('licenseKey');
-    const maxAccountsSpan = document.getElementById('maxAccounts');
-    const activeCountSpan = document.getElementById('activeCount');
-    const remainingCountSpan = document.getElementById('remainingCount');
-    const btnLogout = document.getElementById('btnLogout');
-    
+    // --- DASHBOARD PAGE DEBUG ---
+    console.log(">>> DASHBOARD SAYFASI mantığına girildi.");
     onAuthStateChanged(auth, async (user) => {
+        console.log(">>> onAuthStateChanged fonksiyonu tetiklendi.");
         if (user) {
-            console.log("Kullanıcı giriş yaptı. UID:", user.uid);
-            userEmailSpan.innerText = user.email;
-            
+            console.log(">>> KULLANICI GİRİŞ YAPMIŞ olarak bulundu. UID:", user.uid);
+            // ... Veri çekme kodları burada ...
+            document.getElementById('userEmail').innerText = user.email;
             const docRef = doc(db, "licenses", user.uid);
-            console.log("Firestore'dan şu belge isteniyor:", docRef.path);
-
-            try {
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    console.log("Belge bulundu! İçerik:", docSnap.data());
-                    const licenseData = docSnap.data();
-                    licenseKeySpan.innerText = licenseData.licenseKey;
-                    maxAccountsSpan.innerText = licenseData.maxAccounts;
-                    const activeCount = licenseData.activeAccounts ? licenseData.activeAccounts.length : 0;
-                    activeCountSpan.innerText = activeCount;
-                    remainingCountSpan.innerText = licenseData.maxAccounts - activeCount;
-                } else {
-                    console.log("Belge bulunamadı! Bu UID'ye sahip bir belge Firestore'da yok.");
-                    licenseKeySpan.innerText = "Bu hesaba atanmış bir lisans bulunamadı!";
-                }
-            } catch (error) {
-                console.error("Firestore'dan veri çekerken HATA oluştu:", error);
-                licenseKeySpan.innerText = "Veritabanından veri alınırken bir hata oluştu.";
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                console.log(">>> Firestore belgesi bulundu:", docSnap.data());
+                const licenseData = docSnap.data();
+                document.getElementById('licenseKey').innerText = licenseData.licenseKey;
+                document.getElementById('maxAccounts').innerText = licenseData.maxAccounts;
+                const activeCount = licenseData.activeAccounts ? licenseData.activeAccounts.length : 0;
+                document.getElementById('activeCount').innerText = activeCount;
+                document.getElementById('remainingCount').innerText = licenseData.maxAccounts - activeCount;
+            } else {
+                console.log(">>> Firestore belgesi BULUNAMADI.");
+                document.getElementById('licenseKey').innerText = "Lisans bilgisi yok.";
             }
         } else {
-             // YENİ: Eğer kullanıcı bulunamazsa bunu konsola yazsın.
-             console.log("onAuthStateChanged tetiklendi ancak 'user' nesnesi boş. Giriş yapılmamış sayılıyor.");
-            // window.location.href = 'login.html'; // Şimdilik yönlendirmeyi yoruma alalım ki konsol mesajını görebilelim.
+             console.log(">>> KULLANICI GİRİŞ YAPMAMIŞ olarak algılandı ('user' nesnesi boş).");
         }
     });
 
-    btnLogout.addEventListener('click', () => {
-        signOut(auth).then(() => {
-            window.location.href = 'login.html';
-        });
-    });
+} else {
+    // --- CATCH-ALL DEBUG ---
+    console.error("!!! HİÇBİR SAYFA KOŞULU EŞLEŞMEDİ !!! Sayfa yolu kontrolü başarısız.");
 }
