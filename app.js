@@ -1,43 +1,53 @@
-// BURAYI KENDİ FIREBASE PROJE AYARLARINIZLA DOLDURUN
-// Firebase konsolunda Proje Ayarları (dişli ikonu) > Genel sekmesinde bulabilirsiniz.
+// Firebase v9+ modüler SDK'dan gerekli fonksiyonları içe aktar
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+// Sizin sağladığınız Firebase yapılandırma bilgileri
 const firebaseConfig = {
-  apiKey: "AIzaSy...YOUR_API_KEY",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "...",
-  appId: "1:..."
+  apiKey: "AIzaSyDLibwYuw_2qWo18K3eilJjbE54r7wncUI",
+  authDomain: "goldealisans.firebaseapp.com",
+  projectId: "goldealisans",
+  storageBucket: "goldealisans.appspot.com", // ".firebasestorage" kısmını sildim, genellikle bu şekilde kullanılır
+  messagingSenderId: "689063095221",
+  appId: "1:689063095221:web:e311fef41a857cedb1c7fc",
+  measurementId: "G-7C16XNKFL9"
 };
 
-// Firebase'i başlat
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+// Firebase servislerini başlat
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-//--- Hangi sayfada olduğumuzu kontrol et ---
-if (window.location.pathname.endsWith('login.html') || window.location.pathname === '/') {
+//--- Sayfa yoluna göre ilgili kodu çalıştır ---
+// Not: GitHub Pages'da yol "proje-adi/login.html" şeklinde olabilir, bu yüzden .includes() kullanmak daha güvenlidir.
+if (window.location.pathname.includes('login.html') || window.location.pathname.endsWith('/')) {
+    
     // --- GİRİŞ SAYFASI KODU ---
     const btnLogin = document.getElementById('btnLogin');
     const emailField = document.getElementById('email');
     const passwordField = document.getElementById('password');
     const errorMessage = document.getElementById('error-message');
 
-    btnLogin.addEventListener('click', e => {
+    btnLogin.addEventListener('click', () => {
         const email = emailField.value;
         const password = passwordField.value;
 
-        auth.signInWithEmailAndPassword(email, password)
+        signInWithEmailAndPassword(auth, email, password)
             .then((userCredential) => {
-                // Başarılı giriş
+                // Giriş başarılı, dashboard sayfasına yönlendir.
+                // GitHub Pages için yolu doğru ayarladığınızdan emin olun.
                 window.location.href = 'dashboard.html';
             })
             .catch((error) => {
-                errorMessage.innerText = 'Hata: ' + error.message;
+                errorMessage.innerText = 'Hata: E-posta veya şifre yanlış.';
+                console.error("Giriş Hatası:", error);
             });
     });
 
-} else if (window.location.pathname.endsWith('dashboard.html')) {
-    // --- KULLANICI PANELİ KODU ---
+} else if (window.location.pathname.includes('dashboard.html')) {
+
+    // --- KULLANICI PANELİ (DASHBOARD) KODU ---
     const userEmailSpan = document.getElementById('userEmail');
     const licenseKeySpan = document.getElementById('licenseKey');
     const maxAccountsSpan = document.getElementById('maxAccounts');
@@ -45,37 +55,36 @@ if (window.location.pathname.endsWith('login.html') || window.location.pathname 
     const remainingCountSpan = document.getElementById('remainingCount');
     const btnLogout = document.getElementById('btnLogout');
     
-    auth.onAuthStateChanged(user => {
+    // Kullanıcının giriş durumunu dinle
+    onAuthStateChanged(auth, async (user) => {
         if (user) {
             // Kullanıcı giriş yapmış, verileri Firestore'dan çekelim
             userEmailSpan.innerText = user.email;
             
-            // Firestore'dan 'licenses' koleksiyonundan kullanıcının UID'sine karşılık gelen belgeyi getir
-            db.collection('licenses').doc(user.uid).get().then(doc => {
-                if (doc.exists) {
-                    const licenseData = doc.data();
-                    licenseKeySpan.innerText = licenseData.licenseKey;
-                    maxAccountsSpan.innerText = licenseData.maxAccounts;
-                    
-                    const activeCount = licenseData.activeAccounts ? licenseData.activeAccounts.length : 0;
-                    activeCountSpan.innerText = activeCount;
-                    remainingCountSpan.innerText = licenseData.maxAccounts - activeCount;
-                } else {
-                    licenseKeySpan.innerText = "Lisans bilgisi bulunamadı!";
-                }
-            }).catch(error => {
-                console.error("Veritabanı hatası: ", error);
-                licenseKeySpan.innerText = "Veri alınırken hata oluştu.";
-            });
+            // Firestore'dan kullanıcının UID'sine karşılık gelen belge referansını oluştur
+            const docRef = doc(db, "licenses", user.uid);
+            const docSnap = await getDoc(docRef); // Belgeyi getir
 
+            if (docSnap.exists()) {
+                const licenseData = docSnap.data();
+                licenseKeySpan.innerText = licenseData.licenseKey;
+                maxAccountsSpan.innerText = licenseData.maxAccounts;
+                
+                const activeCount = licenseData.activeAccounts ? licenseData.activeAccounts.length : 0;
+                activeCountSpan.innerText = activeCount;
+                remainingCountSpan.innerText = licenseData.maxAccounts - activeCount;
+            } else {
+                licenseKeySpan.innerText = "Bu hesaba atanmış bir lisans bulunamadı!";
+            }
         } else {
             // Kullanıcı giriş yapmamış, giriş sayfasına yönlendir
             window.location.href = 'login.html';
         }
     });
 
-    btnLogout.addEventListener('click', e => {
-        auth.signOut().then(() => {
+    // Çıkış yap butonu
+    btnLogout.addEventListener('click', () => {
+        signOut(auth).then(() => {
             window.location.href = 'login.html';
         });
     });
